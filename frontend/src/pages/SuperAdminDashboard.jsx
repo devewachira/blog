@@ -8,6 +8,7 @@ import { Users, FileText, MessageSquare, Settings, TrendingUp, Eye } from 'lucid
 import UserManagement from '../components/superadmin/UserManagement';
 import BlogManagement from '../components/superadmin/BlogManagement';
 import CommentManagement from '../components/superadmin/CommentManagement';
+import NewsletterTab from '../components/superadmin/NewsletterTab';
 import { toast } from 'sonner';
 import { testSuperAdminAPI, testAuthStatus } from '../utils/testSuperAdminAPI';
 
@@ -150,7 +151,7 @@ const SuperAdminDashboard = () => {
 
         {/* Management Tabs */}
         <Tabs defaultValue="users" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               User Management
@@ -162,6 +163,10 @@ const SuperAdminDashboard = () => {
             <TabsTrigger value="comments" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               Comment Management
+            </TabsTrigger>
+            <TabsTrigger value="newsletter" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Newsletter
             </TabsTrigger>
           </TabsList>
           
@@ -175,6 +180,10 @@ const SuperAdminDashboard = () => {
           
           <TabsContent value="comments">
             <CommentManagement />
+          </TabsContent>
+
+          <TabsContent value="newsletter">
+            <NewsletterTab />
           </TabsContent>
         </Tabs>
 

@@ -1,98 +1,120 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import dotenv from 'dotenv';
+// Fetch-based Gemini (Generative Language) client
+// Auto-detects available API version and model; supports optional GEMINI_MODEL override.
 
-dotenv.config();
+let cachedModel = null; // cache resolved model for runtime
+let cachedApiVersion = null; // 'v1' or 'v1beta'
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+function getApiKey() {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error('GEMINI_API_KEY is not set');
+  return key;
+}
 
-export const generateBlogContent = async (prompt, type = 'content') => {
-    try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-        let systemPrompt = "";
-        
-        switch (type) {
-            case 'title':
-                systemPrompt = `Generate a compelling, SEO-friendly blog post title based on this topic or idea: "${prompt}". 
-                Return only the title, nothing else. Make it engaging and clickable.`;
-                break;
-                
-            case 'content':
-                systemPrompt = `Write a comprehensive, well-structured blog post about: "${prompt}". 
-                Include:
-                - An engaging introduction
-                - Well-organized main content with subheadings
-                - Practical examples or insights
-                - A strong conclusion
-                Format it in clean, readable paragraphs. Use HTML tags like <h2>, <h3>, <p>, <ul>, <li> for structure.`;
-                break;
-                
-            case 'summary':
-                systemPrompt = `Create a compelling, concise summary (2-3 sentences) for a blog post about: "${prompt}". 
-                This will be used as a meta description and preview. Make it engaging and informative.`;
-                break;
-                
-            case 'tags':
-                systemPrompt = `Generate 5-8 relevant tags/keywords for a blog post about: "${prompt}". 
-                Return them as a comma-separated list. Focus on SEO-friendly, searchable terms.`;
-                break;
-                
-            case 'improve':
-                systemPrompt = `Improve and enhance this blog content while maintaining its core message: "${prompt}". 
-                Make it more engaging, add better structure, fix grammar, and enhance readability. 
-                Use HTML tags like <h2>, <h3>, <p>, <ul>, <li> for proper formatting.`;
-                break;
-                
-            default:
-                systemPrompt = prompt;
-        }
-
-        const result = await model.generateContent(systemPrompt);
-        const response = await result.response;
-        const text = response.text();
-
-        return {
-            success: true,
-            content: text.trim(),
-            type: type
-        };
-
-    } catch (error) {
-        console.error('Gemini AI Error:', error);
-        return {
-            success: false,
-            error: error.message || 'Failed to generate content',
-            type: type
-        };
+async function listModels() {
+  const key = getApiKey();
+  // Try v1 first
+  const tryFetch = async (url) => {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => '');
+      throw new Error(`${resp.status} ${resp.statusText}: ${txt}`);
     }
-};
+    return resp.json();
+  };
+  try {
+    const data = await tryFetch(`https://generativelanguage.googleapis.com/v1/models?key=${encodeURIComponent(key)}`);
+    cachedApiVersion = 'v1';
+    return data?.models || [];
+  } catch (_) {
+    const data = await tryFetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`);
+    cachedApiVersion = 'v1beta';
+    return data?.models || [];
+  }
+}
 
-export const generateBlogIdeas = async (topic) => {
-    try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        
-        const prompt = `Generate 10 creative and engaging blog post ideas related to: "${topic}".
-        Format each idea as:
-        1. [Title] - [Brief description]
-        
-        Make them diverse, interesting, and suitable for different audiences.`;
+function pickModel(models) {
+  // If user specified a model, prefer it if present; otherwise pick a common one that supports generateContent
+  const prefer = (process.env.GEMINI_MODEL?.trim()) || '';
+  const supportsGen = (m) => Array.isArray(m.supportedGenerationMethods) ? m.supportedGenerationMethods.includes('generateContent') : true;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+  const byName = (name) => models.find(m => (m.name?.endsWith(name) || m.name === name) && supportsGen(m));
 
-        return {
-            success: true,
-            ideas: text.trim()
-        };
+  if (prefer) {
+    const found = byName(prefer) || models.find(m => (m.displayName === prefer));
+    if (found) return found.name;
+  }
 
-    } catch (error) {
-        console.error('Gemini AI Error:', error);
-        return {
-            success: false,
-            error: error.message || 'Failed to generate blog ideas'
-        };
-    }
-};
+  const candidates = [
+    'models/gemini-1.5-flash',
+    'models/gemini-1.5-flash-latest',
+    'models/gemini-1.5-flash-8b',
+    'models/gemini-1.5-pro',
+    'models/gemini-1.0-pro',
+    'models/gemini-pro'
+  ];
+  for (const c of candidates) {
+    const m = byName(c.replace(/^models\//, '')) || models.find(x => x.name === c);
+    if (m && supportsGen(m)) return m.name;
+  }
 
-export default { generateBlogContent, generateBlogIdeas };
+  // Fallback to first that supports generateContent
+  const any = models.find(supportsGen);
+  if (any) return any.name;
+  throw new Error('No suitable Gemini model found for generateContent');
+}
+
+async function ensureModel() {
+  if (cachedModel && cachedApiVersion) return { model: cachedModel, api: cachedApiVersion };
+  const models = await listModels();
+  const chosen = pickModel(models);
+  cachedModel = chosen; // already includes `models/` prefix
+  return { model: cachedModel, api: cachedApiVersion };
+}
+
+export async function getGeminiStatus() {
+  const models = await listModels();
+  const { model, api } = await ensureModel();
+  return {
+    apiVersion: api,
+    resolvedModel: model,
+    sampleModels: models.slice(0, 25).map(m => m.name)
+  };
+}
+
+async function callGenerate(systemPrompt) {
+  const key = getApiKey();
+  const { model, api } = await ensureModel();
+  // Do NOT encode the model path; Google expects "v1/models/<id>:generateContent"
+  const url = `https://generativelanguage.googleapis.com/${api}/${model}:generateContent?key=${encodeURIComponent(key)}`;
+  console.log(`[Gemini] Using API=${api} model=${model}`);
+  const body = {
+    contents: [
+      { role: 'user', parts: [{ text: String(systemPrompt) }] }
+    ]
+  };
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => '');
+    throw new Error(`${resp.status} ${resp.statusText}: ${text}`);
+  }
+  const data = await resp.json();
+  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+  if (!text) throw new Error('Empty response text');
+  return text;
+}
+
+export async function generateBlogContent(prompt) {
+  console.log('🤖 Generating content for prompt:', String(prompt).slice(0, 80));
+  const text = await callGenerate(prompt);
+  console.log('✅ AI Generated Content Successfully');
+  return text;
+}
+
+export async function generateBlogIdeas(topic) {
+  const ideaPrompt = `Generate 10 creative and engaging blog post ideas related to: "${topic}".\nFormat each idea as:\n1. [Title] - [Brief description]\nMake them diverse, interesting, and suitable for different audiences.`;
+  return callGenerate(ideaPrompt);
+}

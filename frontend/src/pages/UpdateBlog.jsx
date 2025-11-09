@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import {
     Select,
     SelectContent,
@@ -33,8 +33,8 @@ const UpdateBlog = () => {
     const navigate = useNavigate()
     const dispatch = useDispatch()
     const { blog } = useSelector(store => store.blog)
-    const selectBlog = blog.find(blog => blog._id === id)
-    const [content, setContent] = useState(selectBlog.description);
+const selectBlog = blog.find(blog => blog._id === id)
+const [content, setContent] = useState(selectBlog?.description || "");
     
     // AI Assistant States
     const [aiLoading, setAiLoading] = useState(false)
@@ -44,13 +44,13 @@ const UpdateBlog = () => {
     const [showImproveDialog, setShowImproveDialog] = useState(false)
     const [generatedContent, setGeneratedContent] = useState("")
 
-    const [blogData, setBlogData] = useState({
-        title: selectBlog?.title,
-        subtitle: selectBlog?.subtitle,
-        description: content,
-        category: selectBlog?.category,
+const [blogData, setBlogData] = useState({
+        title: selectBlog?.title || "",
+        subtitle: selectBlog?.subtitle || "",
+        description: selectBlog?.description || "",
+        category: selectBlog?.category || "",
     });
-    const [previewThumbnail, setPreviewThumbnail] = useState(selectBlog?.thumbnail);
+const [previewThumbnail, setPreviewThumbnail] = useState(selectBlog?.thumbnail || "");
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -63,6 +63,21 @@ const UpdateBlog = () => {
     const selectCategory = (value) => {
         setBlogData({ ...blogData, category: value });
     };
+
+    // Sync state when the selected blog becomes available (e.g., after Redux loads)
+    useEffect(() => {
+        if (selectBlog) {
+            setContent(selectBlog?.description || "");
+            setBlogData({
+                title: selectBlog?.title || "",
+                subtitle: selectBlog?.subtitle || "",
+                description: selectBlog?.description || "",
+                category: selectBlog?.category || "",
+            });
+            setPreviewThumbnail(selectBlog?.thumbnail || "");
+            setPublish(!!selectBlog?.isPublished);
+        }
+    }, [selectBlog]);
 
     const selectThumbnail = (e) => {
         const file = e.target.files?.[0];
@@ -214,10 +229,6 @@ const UpdateBlog = () => {
             setContent(newContent);
             setBlogData(prev => ({ ...prev, description: newContent }));
             
-            // Update Jodit editor
-            if (editor.current.value !== undefined) {
-                editor.current.value = newContent;
-            }
         }
         setShowContentDialog(false);
         setShowImproveDialog(false);
@@ -227,11 +238,6 @@ const UpdateBlog = () => {
     const replaceWithGeneratedContent = () => {
         setContent(generatedContent);
         setBlogData(prev => ({ ...prev, description: generatedContent }));
-        
-        // Update Jodit editor
-        if (editor.current && editor.current.value !== undefined) {
-            editor.current.value = generatedContent;
-        }
         
         setShowContentDialog(false);
         setShowImproveDialog(false);
@@ -263,10 +269,12 @@ const UpdateBlog = () => {
                         <Label>Description</Label>
                         <JoditEditor
                             ref={editor}
-                            value={blogData.description}
-                            onChange={newContent => setContent(newContent)}
+                            value={content}
+                            onChange={(newContent) => {
+                                setContent(newContent)
+                                setBlogData(prev => ({ ...prev, description: newContent }))
+                            }}
                             className="jodit_toolbar"
-
                         />
                         
                         {/* AI Assistant Section */}

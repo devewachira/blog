@@ -6,9 +6,11 @@ import blogRoute from "./routes/blog.route.js"
 import commentRoute from "./routes/comment.route.js"
 import superAdminRoute from "./routes/superAdmin.route.js"
 import aiRoute from "./routes/ai.route.js"
+import newsletterRoute from "./routes/newsletter.route.js"
 import cookieParser from 'cookie-parser';
 import cors from 'cors'
 import path from "path"
+import { notFound, errorHandler } from "./middleware/errorHandler.js"
 
 dotenv.config()
 const app = express()
@@ -20,10 +22,26 @@ const PORT = process.env.PORT || 3000
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({extended:true}));
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:3000",
+];
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:3000"],
-    credentials:true
-}))
+    origin: (origin, callback) => {
+        // allow requests with no origin like mobile apps or curl
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
+    credentials: true
+}));
+// Handle preflight
+app.options('*', cors({
+    origin: allowedOrigins,
+    credentials: true
+}));
 
 const _dirname = path.resolve()
 
@@ -42,6 +60,7 @@ app.use('/uploads', express.static(path.join(_dirname, 'backend', 'public', 'upl
  app.use("/api/v1/comment", commentRoute)
  app.use("/api/v1/superadmin", superAdminRoute)
  app.use("/api/v1/ai", aiRoute)
+ app.use("/api/v1/newsletter", newsletterRoute)
 
 // Only serve static files in production
 if (process.env.NODE_ENV === 'production') {
@@ -55,7 +74,26 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
-app.listen(PORT, ()=>{
-    console.log(`Server listen at port ${PORT}`);
-    connectDB()
-})
+// 404 handler and centralized error handler
+app.use(notFound);
+app.use(errorHandler);
+
+// Process-level error logging
+process.on('unhandledRejection', (reason, p) => {
+    console.error('Unhandled Rejection at:', p, 'reason:', reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+});
+
+// Start server after DB connection
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server listen at port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Failed to connect to MongoDB, shutting down server');
+    process.exit(1);
+  });

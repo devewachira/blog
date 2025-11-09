@@ -11,6 +11,7 @@ import {
     getDashboardStats,
     updateUserRole
 } from "../controllers/superAdmin.controller.js";
+import { listSubscribers, broadcast } from "../controllers/newsletter.controller.js";
 
 const router = express.Router();
 
@@ -32,5 +33,9 @@ router.delete('/blogs/:blogId', deleteBlogAdmin);
 // Comment management
 router.get('/comments', getAllComments);
 router.delete('/comments/:commentId', deleteCommentAdmin);
+
+// Newsletter management
+router.get('/newsletter/subscribers', listSubscribers);
+router.post('/newsletter/broadcast', broadcast);
 
 export default router;

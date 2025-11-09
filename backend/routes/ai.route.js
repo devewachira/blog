@@ -1,5 +1,5 @@
 import express from 'express';
-import { generateContent, generateIdeas, improveContent } from '../controllers/ai.controller.js';
+import { generateContent, generateIdeas, improveContent, aiStatus } from '../controllers/ai.controller.js';
 import { isAuthenticated } from '../middleware/isAuthenticated.js';
 
 const router = express.Router();
@@ -12,5 +12,8 @@ router.post('/ideas', isAuthenticated, generateIdeas);
 
 // Improve existing content
 router.post('/improve', isAuthenticated, improveContent);
+
+// Status / diagnostics (auth required)
+router.get('/status', isAuthenticated, aiStatus);
 
 export default router;

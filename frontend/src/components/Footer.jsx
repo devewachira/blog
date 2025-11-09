@@ -10,8 +10,8 @@ const Footer = () => {
         {/*  info */}
         <div className='mb-6 md:mb-0'>
             <Link to='/' className='flex gap-3 items-center'>
-              <img src={ChrisDevLogo} alt="Chris Dev Logo" className='w-12 h-12'/>
-              <h1 className='text-3xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent'>Chris Dev</h1>
+              <img src={ChrisDevLogo} alt="techblog logo" className='w-12 h-12'/>
+              <h1 className='text-3xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent'>techblog</h1>
             </Link>
             <p className='mt-2'>Sharing insights, tutorials, and ideas on web development and tech.</p>
             <p className='mt-2 text-sm'>Building modern web applications with passion</p>
@@ -43,11 +43,14 @@ const Footer = () => {
         <div>
             <h3 className='text-xl font-semibold'>Stay in the Loop</h3>
             <p className='mt-2 text-sm'>Subscribe to get special offers, free giveaways, and more</p>
-            <form action="" className='mt-4 flex'>
+            <form onSubmit={async (e)=>{e.preventDefault(); const email=e.currentTarget.elements.email?.value; if(!email){return;} try{ const r=await fetch('/api/v1/newsletter/subscribe',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email})}); const d=await r.json(); alert(d.message || (d.success?'Subscribed':'Failed')); e.currentTarget.reset(); }catch(err){ alert('Failed to subscribe'); } }} className='mt-4 flex'>
                 <input 
+                id='email'
+                name='email'
                 type="email" 
                 placeholder='Your email address'
                 className='w-full p-2 rounded-l-md  text-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500'
+                required
                 />
                 <button type='submit' className='bg-red-600 text-white px-4 rounded-r-md hover:bg-red-700'>Subscribe</button>
             </form>
@@ -55,8 +58,8 @@ const Footer = () => {
       </div>
       {/* bottom section */}
       <div className='mt-8 border-t border-gray-700 pt-6 text-center text-sm'>
-        <p>&copy; {new Date().getFullYear()} <span className='bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent font-semibold'>Chris Dev</span>. All rights reserved</p>
-        <p className='mt-1 text-xs text-gray-400'>Created by Chris Dev</p>
+        <p>&copy; {new Date().getFullYear()} <span className='bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent font-semibold'>zuriminty</span>. All rights reserved</p>
+        <p className='mt-1 text-xs text-gray-400'>Created by zuriminty</p>
       </div>
     </footer>
   )

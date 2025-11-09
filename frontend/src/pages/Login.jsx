@@ -32,7 +32,7 @@ const Login = () => {
     console.log(input);
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/v1/user/login`, input, {
+      const response = await axios.post('/api/v1/user/login', input, {
         headers: {
           "Content-Type": "application/json"
         },
@@ -51,12 +51,14 @@ const Login = () => {
   };
   const [showPassword, setShowPassword] = useState(false);
   return (
-    <div className="flex items-center h-screen md:pt-14 md:h-[760px] ">
-      <div className="hidden md:block">
-        <img src={auth} alt="" className='h-[700px]' />
+    <div className="min-h-screen pt-16 grid md:grid-cols-2 items-stretch">
+      {/* Left full-height image */}
+      <div className="relative hidden md:block">
+        <img src={auth} alt="" className='absolute inset-0 w-full h-full object-cover' />
       </div>
-      <div className='flex justify-center items-center flex-1 px-4 md:px-0'>
-      <Card className="w-full max-w-md p-6 shadow-lg rounded-2xl dark:bg-gray-800 dark:border-gray-600">
+      {/* Right form column */}
+      <div className='flex justify-center items-center px-4 md:px-0'>
+      <Card className="w-full max-w-md p-6 shadow-lg rounded-2xl dark:bg-gray-800 dark:border-gray-600 bg-white/90 dark:bg-gray-800/90">
         <CardHeader>
           <CardTitle className="text-center text-xl font-semibold">Login into your account</CardTitle>
           <p className='text-gray-600 dark:text-gray-300 mt-2 text-sm font-serif text-center'>Enter your details below to login your account</p>

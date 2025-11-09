@@ -87,8 +87,8 @@ const Navbar = () => {
                 <div className='flex gap-7 items-center'>
                     <Link to={'/'}>
                         <div className='flex gap-2 items-center'>
-                            <img src={ChrisDevLogo} alt="Chris Dev Logo" className='w-8 h-8 md:w-12 md:h-12' />
-                            <h1 className='font-bold text-2xl md:text-3xl bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent'>Chris Dev</h1>
+                            <img src={ChrisDevLogo} alt="techblog logo" className='w-8 h-8 md:w-12 md:h-12' />
+                            <h1 className='font-bold text-2xl md:text-3xl bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent'>techblog</h1>
                         </div>
                     </Link>
                     <div className='relative hidden md:block'>
@@ -104,9 +104,24 @@ const Navbar = () => {
                 {/* nav section */}
                 <nav className='flex md:gap-7 gap-4 items-center'>
                     <ul className='hidden md:flex gap-7 items-center text-xl font-semibold'>
-                        <NavLink to={'/'} className="cursor-pointer"><li>Home</li></NavLink>
-                        <NavLink to={'/blogs'} className={`cursor-pointer`}><li>Blogs</li></NavLink>
-                        <NavLink to={'/about'} className={`cursor-pointer`}><li>About</li></NavLink>
+                        <NavLink
+                          to='/'
+                          className={({ isActive }) => `cursor-pointer transition-colors duration-200 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'} hover:text-blue-500 dark:hover:text-blue-300`}
+                        >
+                          <li>Home</li>
+                        </NavLink>
+                        <NavLink
+                          to='/blogs'
+                          className={({ isActive }) => `cursor-pointer transition-colors duration-200 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'} hover:text-blue-500 dark:hover:text-blue-300`}
+                        >
+                          <li>Blogs</li>
+                        </NavLink>
+                        <NavLink
+                          to='/about'
+                          className={({ isActive }) => `cursor-pointer transition-colors duration-200 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'} hover:text-blue-500 dark:hover:text-blue-300`}
+                        >
+                          <li>About</li>
+                        </NavLink>
                         {/* <NavLink to={'/write-blog'} className={`cursor-pointer`}><li>Write a Blog</li></NavLink> */}
                     </ul>
                     <div className='flex'>
@@ -150,6 +165,13 @@ const Navbar = () => {
                                                 <span>Write Blog</span>
                                                 <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
                                             </DropdownMenuItem>
+                                            { (user?.role === 'superadmin' || user?.email === 'mejoarwachira@gmail.com') && (
+                                                <DropdownMenuItem onClick={() => navigate('/superadmin')}>
+                                                    <Users />
+                                                    <span>Super Admin</span>
+                                                    <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+                                                </DropdownMenuItem>
+                                            )}
                                         </DropdownMenuGroup>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem onClick={logoutHandler}>
